@@ -4,7 +4,7 @@ import api, { waLink, logSend, waSend } from '../api.js';
 import { both } from '../utils/names.js';
 import { removeVoter, clearSelection } from '../selection.js';
 import { useCandidate } from '../utils/candidate.js';
-import { slipMessage, shareSlip } from '../utils/slip.js';
+import { slipMessage, shareSlip, candidateBlock } from '../utils/slip.js';
 import { useWaStatus, waReady, waReadyAccounts } from '../utils/waSession.js';
 import VoterSlip from '../components/VoterSlip.jsx';
 import WaConnect, { fmtPhone } from '../components/WaConnect.jsx';
@@ -127,14 +127,27 @@ export default function WhatsApp() {
       }
       return lines.join('\n');
     });
+    const head = candidateBlock(candidate);
     return [
+      ...(head ? [head, sep] : []),
       `🗳️ *मतदाता सूची (Voter List)*`,
       `कुल सदस्य (Total): *${list.length}*`,
       sep,
       blocks.join(`\n${sep}\n`),
-      sep
+      sep,
+      ...(candidate?.slogan ? [`🙏 ${candidate.slogan}`] : [])
     ].join('\n');
   }
+
+  // Candidate settings usually load a moment after the page: refresh an untouched list message.
+  const listMsgAuto = useRef('');
+  useEffect(() => {
+    if (sendMode !== 'single' || !candidate) return;
+    if (singleMsg && singleMsg !== listMsgAuto.current) return; // user edited it — leave alone
+    const built = buildListMessage(recipients);
+    listMsgAuto.current = built;
+    setSingleMsg(built);
+  }, [candidate, sendMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function switchMode(m) {
     setSendMode(m);

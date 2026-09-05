@@ -26,6 +26,25 @@ export function candidateLine(c) {
   return en && hi && en !== hi ? `${en} (${hi})` : en || hi;
 }
 
+// Candidate details block (the same fields as the Candidate settings page),
+// used at the top of the "send list to one person" message.
+export function candidateBlock(c) {
+  if (!c) return '';
+  const lines = [];
+  if (c.name || c.nameEn) lines.push(`*उम्मीदवार | Candidate : ${candidateLine(c)}*`);
+  if (c.election) lines.push(`चुनाव | Election : ${c.election}`);
+  if (c.ward) lines.push(`वार्ड नं. | Ward No. : ${c.ward}`);
+  if (c.ballotNo) lines.push(`बैलेट नं. | Ballot No. : ${c.ballotNo}`);
+  if (c.symbol || c.symbolEn) {
+    const sym = c.symbol && c.symbolEn && c.symbol !== c.symbolEn ? `${c.symbol} (${c.symbolEn})` : c.symbol || c.symbolEn;
+    lines.push(`चुनाव चिन्ह | Symbol : ${sym}`);
+  }
+  if (c.tagline) lines.push(c.tagline);
+  if (c.slogan) lines.push(`_${c.slogan}_`);
+  if (c.phone) lines.push(`सम्पर्क : ${c.phone}`);
+  return lines.join('\n');
+}
+
 export function slipLines(voter, c) {
   const v = voter || {};
   const lines = [];
