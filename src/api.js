@@ -5,6 +5,31 @@ import axios from 'axios';
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const api = axios.create({ baseURL: API_BASE + '/api' });
 
+// Normalise failures so pages can always render `e.response.data.error` as text.
+// Without this, a host's own 404 page (e.g. Vercel's `{ error: { code, message } }`)
+// ends up as an object inside JSX and React crashes with a blank page.
+api.interceptors.response.use(undefined, (error) => {
+  const res = error.response;
+  const notConfigured = !API_BASE && typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  let message;
+  if (notConfigured && (!res || res.status === 404)) {
+    message = 'API server URL is not configured. Set VITE_API_URL to the server address and redeploy.';
+  } else if (!res) {
+    message = error.message || 'Network error';
+  } else {
+    const d = res.data;
+    message =
+      (typeof d?.error === 'string' && d.error) ||
+      (typeof d?.error?.message === 'string' && d.error.message) ||
+      (typeof d?.message === 'string' && d.message) ||
+      (typeof d === 'string' && d.slice(0, 200)) ||
+      `Request failed (${res.status})`;
+  }
+  error.message = message;
+  error.response = { ...(res || { status: 0 }), data: { ...(typeof res?.data === 'object' && res.data), error: message } };
+  return Promise.reject(error);
+});
+
 export default api;
 
 // Build a wa.me link. Numbers default to India (+91) when 10 digits.
