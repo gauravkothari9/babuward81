@@ -24,6 +24,9 @@ export default function WaConnect({ compact = false }) {
   const [label, setLabel] = useState('');
 
   const accounts = s.accounts || [];
+  const maxAccounts = s.maxAccounts || 1;
+  const canAdd = accounts.length < maxAccounts;
+  const single = maxAccounts === 1;
   const ready = accounts.filter((a) => a.status === 'ready');
   const anyReady = ready.length > 0;
   const agentOffline = s.status === 'agent_offline' || s.status === 'unavailable';
@@ -59,14 +62,14 @@ export default function WaConnect({ compact = false }) {
           ✅ {ready.length === 1 ? <>WhatsApp connected as <b>{fmtPhone(ready[0].phone)}</b></> : <><b>{ready.length} WhatsApp numbers</b> connected</>}
           {' '}— photo + message are sent directly{ready.length > 1 ? ', rotating between numbers' : ''}. | फोटो और संदेश सीधे भेजे जाएंगे।
         </span>
-        <a href="#wa-numbers" className="btn small outline" style={{ textDecoration: 'none' }}>Manage numbers</a>
+        <a href="#wa-numbers" className="btn small outline" style={{ textDecoration: 'none' }}>{single ? 'Manage' : 'Manage numbers'}</a>
       </div>
     );
   }
 
   return (
     <div className="card" id="wa-numbers" style={{ maxWidth: 720 }}>
-      <div className="section-title" style={{ marginTop: 0 }}>📱 WhatsApp numbers | व्हाट्सएप नंबर</div>
+      <div className="section-title" style={{ marginTop: 0 }}>{single ? '📱 WhatsApp connection | व्हाट्सएप कनेक्शन' : '📱 WhatsApp numbers | व्हाट्सएप नंबर'}</div>
 
       {agentOffline && (
         <div className="msg" style={{ background: '#fff8e1', border: '1px solid #f5d67a' }}>
@@ -83,9 +86,10 @@ export default function WaConnect({ compact = false }) {
         <>
           {accounts.length === 0 && (
             <p className="subtitle" style={{ marginTop: 0 }}>
-              No number linked yet. Add one — after that every Send delivers the candidate photo with the message
-              automatically, without opening WhatsApp. Add several numbers to spread the sending load. |
-              एक या अधिक व्हाट्सएप नंबर जोड़ें, फिर हर Send में फोटो + संदेश अपने आप जाएगा।
+              Not connected. Link the campaign WhatsApp number once — after that every Send delivers the candidate
+              photo with the message automatically, without opening WhatsApp.
+              {!single && ' Add several numbers to spread the sending load.'} |
+              एक बार व्हाट्सएप लिंक करें, फिर हर Send में फोटो + संदेश अपने आप जाएगा।
             </p>
           )}
 
@@ -126,28 +130,34 @@ export default function WaConnect({ compact = false }) {
             </div>
           ))}
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-            <input
-              type="text"
-              placeholder="Label (optional), e.g. Booth 3 phone"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              style={{ flexGrow: 1, minWidth: 180 }}
-              maxLength={40}
-            />
-            <button type="button" className="btn green" disabled={busy} onClick={add}>
-              ➕ Add WhatsApp number | नंबर जोड़ें
-            </button>
-          </div>
+          {canAdd && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+              {!single && (
+                <input
+                  type="text"
+                  placeholder="Label (optional), e.g. Booth 3 phone"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  style={{ flexGrow: 1, minWidth: 180 }}
+                  maxLength={40}
+                />
+              )}
+              <button type="button" className="btn green" disabled={busy} onClick={add}>
+                {single ? '🔗 Connect WhatsApp | व्हाट्सएप जोड़ें' : '➕ Add WhatsApp number | नंबर जोड़ें'}
+              </button>
+            </div>
+          )}
+          {!canAdd && !single && (
+            <p className="subtitle" style={{ margin: '6px 0 0' }}>Maximum {maxAccounts} numbers linked. Unlink one to add another.</p>
+          )}
           {err && <div className="msg err" style={{ marginTop: 8 }}>{err}</div>}
         </>
       )}
 
       {!compact && (
         <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 12 }}>
-          ⚠️ Use spare / campaign SIMs, not personal numbers. WhatsApp may block numbers that send many
-          messages to people who have not saved them. Sends rotate across connected numbers and pause a few
-          seconds between messages from the same number.
+          ⚠️ Use a spare / campaign SIM, not a personal number. WhatsApp may block numbers that send many
+          messages to people who have not saved them. Bulk send pauses a few seconds between messages.
         </div>
       )}
     </div>
