@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { waStatus } from '../api.js';
 
-let cache = { status: 'unknown', qr: '', phone: '', name: '', error: '', savedSession: false, remote: false };
+let cache = { status: 'unknown', qr: '', phone: '', name: '', error: '', savedSession: false, remote: false, accounts: [] };
 const subs = new Set();
 let timer = null;
 
@@ -24,7 +24,8 @@ async function tick() {
 function schedule() {
   clearTimeout(timer);
   if (!subs.size) return;
-  const fast = ['starting', 'qr', 'authenticated', 'unknown'].includes(cache.status);
+  const linking = (a) => ['starting', 'qr', 'authenticated'].includes(a.status);
+  const fast = ['starting', 'qr', 'authenticated', 'unknown'].includes(cache.status) || (cache.accounts || []).some(linking);
   timer = setTimeout(tick, fast ? 2000 : 10000);
 }
 
@@ -46,4 +47,5 @@ export function useWaStatus() {
   return s;
 }
 
-export const waReady = (s) => s?.status === 'ready';
+export const waReady = (s) => s?.status === 'ready' || (s?.accounts || []).some((a) => a.status === 'ready');
+export const waReadyAccounts = (s) => (s?.accounts || []).filter((a) => a.status === 'ready');

@@ -47,15 +47,15 @@ export function logSend({ voterId, voterName, phone, message, mode = 'single', r
 
 // ---- Server-side WhatsApp session (photo + message sent directly) ----
 export const waStatus = () => api.get('/whatsapp/status').then((r) => r.data);
-export const waConnect = () => api.post('/whatsapp/connect').then((r) => r.data);
-export const waLogout = () => api.post('/whatsapp/logout').then((r) => r.data);
+export const waConnect = ({ accountId, label } = {}) => api.post('/whatsapp/connect', { accountId, label }).then((r) => r.data);
+export const waLogout = ({ accountId } = {}) => api.post('/whatsapp/logout', { accountId }).then((r) => r.data);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Sends candidate photo + message to `phone` from the linked WhatsApp and logs it.
 // When the API is serverless the send is queued for the WhatsApp agent; we then
 // wait for the agent to deliver it so callers get the same { log, sent } shape.
-export async function waSend({ voterId, voterName, phone, message, mode = 'single', recipientNames = [], withPhoto = true }, { timeoutMs = 120000 } = {}) {
-  const r = await api.post('/whatsapp/send', { voterId, voterName, phone, message, mode, recipientNames, withPhoto });
+export async function waSend({ voterId, voterName, phone, message, mode = 'single', recipientNames = [], withPhoto = true, accountId = '' }, { timeoutMs = 120000 } = {}) {
+  const r = await api.post('/whatsapp/send', { voterId, voterName, phone, message, mode, recipientNames, withPhoto, accountId });
   if (r.status !== 202 || !r.data?.queued) return r.data;
 
   const jobId = r.data.jobId;
@@ -66,7 +66,7 @@ export async function waSend({ voterId, voterName, phone, message, mode = 'singl
     const job = data.jobs?.[0];
     if (!job) continue;
     if (job.status === 'sent') {
-      return { queued: true, log: { phone: job.phone, withPhoto: !!job.result?.withPhoto }, sent: { parts: job.result?.parts || 1 } };
+      return { queued: true, log: { phone: job.phone, withPhoto: !!job.result?.withPhoto }, sent: { parts: job.result?.parts || 1, from: job.result?.from || '' } };
     }
     if (job.status === 'failed') {
       const err = new Error(job.error || 'Send failed');

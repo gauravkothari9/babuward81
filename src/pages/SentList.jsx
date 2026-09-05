@@ -139,7 +139,7 @@ export default function SentList() {
                     <td>
                       <span className="badge on">{MODE_LABEL[l.mode] || l.mode}</span>
                       <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>
-                        {l.via === 'api' ? (l.withPhoto ? '📷 photo + text, sent directly' : 'text, sent directly') : 'via WhatsApp link'}
+                        {l.via === 'api' ? (l.withPhoto ? '📷 photo + text, sent directly' : 'text, sent directly') + (l.fromPhone ? ` from +${l.fromPhone}` : '') : 'via WhatsApp link'}
                       </div>
                     </td>
                     <td

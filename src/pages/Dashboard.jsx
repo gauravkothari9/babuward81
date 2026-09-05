@@ -27,8 +27,6 @@ function CandidateCard() {
   );
 }
 
-const PAGE = 200; // rows fetched/rendered per step — keeps typing smooth on ~8,800 voters
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
@@ -39,7 +37,6 @@ export default function Dashboard() {
   const [query, setQuery] = useState(''); // debounced value used for the API call
   const [list, setList] = useState({ voters: [], total: 0, page: 1, pages: 1 });
   const [loading, setLoading] = useState(false);
-  const [shown, setShown] = useState(PAGE); // rows rendered so far (grows with "Show more")
   const selected = useSelection();
 
   function toggleAllVisible() {
@@ -56,15 +53,12 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     let stale = false;
-    api.get('/voters', { params: { q: query, part: tab === 'all' ? '' : tab, limit: shown } })
+    api.get('/voters', { params: { q: query, part: tab === 'all' ? '' : tab, limit: 20000 } })
       .then((r) => { if (!stale) setList(r.data); })
       .catch((e) => { if (!stale) setErr(e.response?.data?.error || e.message); })
       .finally(() => { if (!stale) setLoading(false); });
     return () => { stale = true; };
-  }, [tab, query, shown]);
-
-  // new search / part → start again from the first rows
-  useEffect(() => { setShown(PAGE); }, [tab, query]);
+  }, [tab, query]);
 
   // live search: debounce typing by 300ms
   useEffect(() => {
@@ -198,14 +192,6 @@ export default function Dashboard() {
               </table>
             </div>
 
-            {list.voters.length < list.total && (
-              <p className="subtitle" style={{ marginTop: 8 }}>
-                Showing {list.voters.length} of {list.total}.{' '}
-                <button type="button" className="btn small outline" onClick={() => setShown((n) => n + PAGE)} disabled={loading}>
-                  Show {Math.min(PAGE, list.total - list.voters.length)} more
-                </button>
-              </p>
-            )}
 
             <div className="pagination">
               <Link to={tab === 'all' ? '/voters' : `/voters?part=${tab}`} style={{ marginLeft: 'auto' }}>

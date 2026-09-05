@@ -154,3 +154,6 @@ td.wrap { white-space: normal; }
 .slip-preview img { display: block; width: 100%; }
 .slip-actions { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 240px; max-width: 420px; }
 .slip-actions .btn { text-decoration: none; text-align: center; }
+
+/* Long tables (Dashboard shows every voter): let the browser skip off-screen rows. */
+.table-wrap tbody tr { content-visibility: auto; contain-intrinsic-size: auto 41px; }

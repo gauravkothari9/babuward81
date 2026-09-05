@@ -5,9 +5,9 @@ import { both } from '../utils/names.js';
 import { removeVoter, clearSelection } from '../selection.js';
 import { useCandidate } from '../utils/candidate.js';
 import { slipMessage, shareSlip } from '../utils/slip.js';
-import { useWaStatus, waReady } from '../utils/waSession.js';
+import { useWaStatus, waReady, waReadyAccounts } from '../utils/waSession.js';
 import VoterSlip from '../components/VoterSlip.jsx';
-import WaConnect from '../components/WaConnect.jsx';
+import WaConnect, { fmtPhone } from '../components/WaConnect.jsx';
 
 // {name} = voter name, {slip} = candidate + voting details block
 const TEMPLATES = [
@@ -55,7 +55,9 @@ export default function WhatsApp() {
   const [errMsg, setErrMsg] = useState('');
   const candidate = useCandidate();
   const wa = useWaStatus();
-  const direct = waReady(wa); // server session linked: photo + text go straight to the number
+  const direct = waReady(wa); // at least one number linked: photo + text go straight to the recipient
+  const readyNumbers = waReadyAccounts(wa);
+  const [fromAccount, setFromAccount] = useState(''); // '' = rotate across connected numbers
   const hasPhoto = !!candidate?.photo;
 
   // single mode
@@ -144,12 +146,13 @@ export default function WhatsApp() {
   async function deliver(payload) {
     setErrMsg('');
     if (direct) {
-      const out = await waSend(payload);
+      const out = await waSend({ ...payload, accountId: readyNumbers.some((a) => a.id === fromAccount) ? fromAccount : '' });
       const parts = out?.sent?.parts || 1;
       setSaveMsg(
         `✅ Sent to +${out?.log?.phone || payload.phone}` +
         (out?.log?.withPhoto ? ' with candidate photo' : '') +
         (parts > 1 ? ' (photo + message)' : '') +
+        (out?.sent?.from ? ` from ${fmtPhone(out.sent.from)}` : '') +
         ' — saved to sent list | फोटो और संदेश भेज दिया गया'
       );
       return out;
@@ -299,6 +302,15 @@ export default function WhatsApp() {
         </p>
         {sentListLink}
         <WaConnect compact={direct} />
+      {direct && readyNumbers.length > 1 && (
+        <div className="filters" style={{ alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 14 }}>Send from | किस नंबर से:</label>
+          <select value={fromAccount} onChange={(e) => setFromAccount(e.target.value)}>
+            <option value="">Rotate between all {readyNumbers.length} numbers (recommended)</option>
+            {readyNumbers.map((a) => <option key={a.id} value={a.id}>{fmtPhone(a.phone)}{a.label ? ` — ${a.label}` : ''}</option>)}
+          </select>
+        </div>
+      )}
         {saveMsg && <div className="msg ok">{saveMsg}</div>}
         {errMsg && <div className="msg err">{errMsg}</div>}
 
@@ -497,6 +509,15 @@ export default function WhatsApp() {
       </p>
       {sentListLink}
       <WaConnect compact={direct} />
+      {direct && readyNumbers.length > 1 && (
+        <div className="filters" style={{ alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 14 }}>Send from | किस नंबर से:</label>
+          <select value={fromAccount} onChange={(e) => setFromAccount(e.target.value)}>
+            <option value="">Rotate between all {readyNumbers.length} numbers (recommended)</option>
+            {readyNumbers.map((a) => <option key={a.id} value={a.id}>{fmtPhone(a.phone)}{a.label ? ` — ${a.label}` : ''}</option>)}
+          </select>
+        </div>
+      )}
       {saveMsg && <div className="msg ok">{saveMsg}</div>}
       {errMsg && <div className="msg err">{errMsg}</div>}
 
