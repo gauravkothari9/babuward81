@@ -49,7 +49,32 @@ export function logSend({ voterId, voterName, phone, message, mode = 'single', r
 export const waStatus = () => api.get('/whatsapp/status').then((r) => r.data);
 export const waConnect = () => api.post('/whatsapp/connect').then((r) => r.data);
 export const waLogout = () => api.post('/whatsapp/logout').then((r) => r.data);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // Sends candidate photo + message to `phone` from the linked WhatsApp and logs it.
-export function waSend({ voterId, voterName, phone, message, mode = 'single', recipientNames = [], withPhoto = true }) {
-  return api.post('/whatsapp/send', { voterId, voterName, phone, message, mode, recipientNames, withPhoto }).then((r) => r.data);
+// When the API is serverless the send is queued for the WhatsApp agent; we then
+// wait for the agent to deliver it so callers get the same { log, sent } shape.
+export async function waSend({ voterId, voterName, phone, message, mode = 'single', recipientNames = [], withPhoto = true }, { timeoutMs = 120000 } = {}) {
+  const r = await api.post('/whatsapp/send', { voterId, voterName, phone, message, mode, recipientNames, withPhoto });
+  if (r.status !== 202 || !r.data?.queued) return r.data;
+
+  const jobId = r.data.jobId;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await sleep(1500);
+    const { data } = await api.get('/whatsapp/jobs', { params: { ids: jobId } });
+    const job = data.jobs?.[0];
+    if (!job) continue;
+    if (job.status === 'sent') {
+      return { queued: true, log: { phone: job.phone, withPhoto: !!job.result?.withPhoto }, sent: { parts: job.result?.parts || 1 } };
+    }
+    if (job.status === 'failed') {
+      const err = new Error(job.error || 'Send failed');
+      err.response = { status: 400, data: { error: err.message } };
+      throw err;
+    }
+  }
+  const err = new Error('Still waiting for the WhatsApp agent to deliver this message. Check the Sent List in a minute.');
+  err.response = { status: 504, data: { error: err.message } };
+  throw err;
 }

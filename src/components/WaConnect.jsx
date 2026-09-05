@@ -10,9 +10,14 @@ export default function WaConnect({ compact = false }) {
   const s = useWaStatus();
   const [busy, setBusy] = useState(false);
 
+  const [err, setErr] = useState('');
+
   async function connect() {
     setBusy(true);
-    try { await waConnect(); await refreshWaStatus(); } finally { setBusy(false); }
+    setErr('');
+    try { await waConnect(); await refreshWaStatus(); }
+    catch (e) { setErr(e.response?.data?.error || e.message); }
+    finally { setBusy(false); }
   }
   async function logout() {
     if (!window.confirm('Unlink WhatsApp from this app? You will need to scan the QR again. | व्हाट्सएप अनलिंक करें?')) return;
@@ -57,7 +62,7 @@ export default function WaConnect({ compact = false }) {
       )}
 
       {(s.status === 'starting' || s.status === 'authenticated') && (
-        <div className="msg ok">⏳ {s.status === 'starting' ? 'Starting WhatsApp… (first time takes ~30 s)' : 'Linked — loading chats…'}</div>
+        <div className="msg ok">⏳ {s.status === 'starting' ? `Starting WhatsApp${s.remote ? ' on the campaign laptop' : ''}… (first time takes ~30 s)` : 'Linked — loading chats…'}</div>
       )}
 
       {(s.status === 'disconnected' || s.status === 'error' || s.status === 'auth_failure') && (
@@ -67,21 +72,24 @@ export default function WaConnect({ compact = false }) {
             with the message automatically, without opening WhatsApp. |
             एक बार व्हाट्सएप लिंक करें, फिर हर Send में फोटो + संदेश अपने आप जाएगा।
           </p>
-          {s.error && <div className="msg err">{s.error}</div>}
+          {(err || s.error) && <div className="msg err">{err || s.error}</div>}
           <button type="button" className="btn green" disabled={busy} onClick={connect}>
             🔗 Connect WhatsApp | व्हाट्सएप जोड़ें
           </button>
         </>
       )}
 
-      {s.status === 'unavailable' && (
+      {(s.status === 'agent_offline' || s.status === 'unavailable') && (
         <div className="msg" style={{ background: '#fff8e1', border: '1px solid #f5d67a' }}>
-          ℹ️ Direct sending (photo + message from a linked number) is not available on this server host.
-          Send buttons open WhatsApp with the message pre-filled instead; attach the voter slip image yourself.
-          | इस सर्वर पर सीधा भेजना उपलब्ध नहीं है — संदेश WhatsApp में खुलेगा।
+          <b>🖥️ WhatsApp agent is not running.</b> Direct sending (candidate photo + message) is done by a small
+          program on the campaign laptop. Start it there and this card will update within a few seconds:
+          <pre style={{ margin: '8px 0', padding: '8px 10px', background: '#fff', border: '1px solid #f5d67a', borderRadius: 6, fontSize: 13 }}>cd server<br />npm run agent</pre>
+          Until then, Send buttons open WhatsApp with the message pre-filled (text only).
+          | प्रचार लैपटॉप पर <b>npm run agent</b> चलाएँ, फिर फोटो + संदेश सीधे जाएंगे।
+          {s.lastSeen && <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 6 }}>Last seen: {new Date(s.lastSeen).toLocaleString()}</div>}
         </div>
       )}
-      {s.status === 'offline' && <div className="msg err">Server not reachable. Start the server (npm run dev).</div>}
+      {s.status === 'offline' && <div className="msg err">Server not reachable. {s.error}</div>}
       {s.status === 'unknown' && <div className="subtitle" style={{ margin: 0 }}>Checking…</div>}
 
       {!compact && (

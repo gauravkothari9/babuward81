@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { waStatus } from '../api.js';
 
-let cache = { status: 'unknown', qr: '', phone: '', name: '', error: '', savedSession: false };
+let cache = { status: 'unknown', qr: '', phone: '', name: '', error: '', savedSession: false, remote: false };
 const subs = new Set();
 let timer = null;
 
