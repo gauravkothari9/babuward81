@@ -74,6 +74,13 @@ export default function WaConnect({ compact = false }) {
         </>
       )}
 
+      {s.status === 'unavailable' && (
+        <div className="msg" style={{ background: '#fff8e1', border: '1px solid #f5d67a' }}>
+          ℹ️ Direct sending (photo + message from a linked number) is not available on this server host.
+          Send buttons open WhatsApp with the message pre-filled instead; attach the voter slip image yourself.
+          | इस सर्वर पर सीधा भेजना उपलब्ध नहीं है — संदेश WhatsApp में खुलेगा।
+        </div>
+      )}
       {s.status === 'offline' && <div className="msg err">Server not reachable. Start the server (npm run dev).</div>}
       {s.status === 'unknown' && <div className="subtitle" style={{ margin: 0 }}>Checking…</div>}
 
